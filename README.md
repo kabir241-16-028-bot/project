@@ -1,84 +1,137 @@
 # ☕ Coffee Shop Management System (Spring Boot)
 
-একটি সহজ, রেডি-টু-রান Spring Boot প্রজেক্ট — Coffee Shop এর Product, Category, Customer এবং Order ম্যানেজমেন্টের জন্য। H2 in-memory database ব্যবহার করা হয়েছে, তাই কোনো external database সেটআপ লাগবে না।
+A simple, ready-to-run Spring Boot project for managing **Products, Categories, Customers, and Orders** in a coffee shop. It uses an **H2 in-memory database**, so no external database setup is required.
 
 ## Features
-- Product (menu item) CRUD — name, price, stock, category
-- Category CRUD
-- Customer CRUD
-- Order creation — automatically calculates total amount & reduces stock
-- Sample data auto-loads on startup
-- Simple built-in web dashboard at `/` to view products & categories
-- H2 database console at `/h2-console`
+
+* **Product (Menu Item) CRUD** — Manage name, price, stock, and category
+* **Category CRUD**
+* **Customer CRUD**
+* **Order Creation** — Automatically calculates the total amount and reduces product stock
+* **Sample Data Auto-Load** — Sample data is automatically loaded when the application starts
+* **Simple Built-in Web Dashboard** at `/` to view products and categories
+* **H2 Database Console** at `/h2-console`
 
 ## Tech Stack
-- Java 17
-- Spring Boot 3.3.4
-- Spring Data JPA
-- H2 Database (in-memory)
-- Maven
-- Lombok
 
-## VSCode এ চালানোর সহজ উপায় (Easy Setup in VSCode)
+* **Java 17**
+* **Spring Boot 3.3.4**
+* **Spring Data JPA**
+* **H2 Database (In-memory)**
+* **Maven**
+* **Lombok**
 
-### 1. প্রয়োজনীয় জিনিস (Prerequisites)
-- **Java JDK 17** বা তার উপরে ইন্সটল থাকতে হবে (`java -version` দিয়ে চেক করুন)
-- **VSCode**
-- VSCode Extension: **"Extension Pack for Java"** (`vscjava.vscode-java-pack`) — এটা ইন্সটল করলেই Maven, Java Debugger সব চলে আসবে
-- (Optional) **"Spring Boot Extension Pack"** (`vmware.vscode-spring-boot`)
+# VSCode Setup Guide
 
-> Maven আলাদা করে ইন্সটল করা লাগবে না — VSCode Java Extension Pack এর সাথে built-in Maven wrapper ব্যবহার করা যায়, অথবা সিস্টেমে Maven ইন্সটল থাকলে সেটাও কাজ করবে।
+## 1. Prerequisites
 
-### 2. প্রজেক্ট ওপেন করুন
-1. এই zip ফাইলটা extract করুন
-2. VSCode ওপেন করে **File → Open Folder** থেকে `coffee-shop-management` ফোল্ডারটা সিলেক্ট করুন
-3. VSCode অটোমেটিক্যালি Java প্রজেক্ট হিসেবে ডিটেক্ট করবে এবং dependencies download শুরু করবে (প্রথমবার একটু সময় লাগতে পারে)
+You need the following:
 
-### 3. প্রজেক্ট রান করুন
-তিনটা সহজ উপায় আছে:
+* **Java JDK 17 or higher** installed
+  Check it using:
 
-**Option A: VSCode UI দিয়ে**
-- `CoffeeShopManagementApplication.java` ফাইলটা ওপেন করুন
-- `main` মেথডের উপরে **"Run"** বাটনে ক্লিক করুন
+  ```bash
+  java -version
+  ```
 
-**Option B: Terminal দিয়ে (Maven লাগবে)**
+* **VSCode**
+
+* VSCode Extension: **Extension Pack for Java**
+  Extension ID: `vscjava.vscode-java-pack`
+
+  Installing this extension provides Java support, Maven support, Java debugging, and other required tools.
+
+* **Optional:** Spring Boot Extension Pack
+  Extension ID: `vmware.vscode-spring-boot`
+
+> You do not necessarily need to install Maven separately. You can use the Maven Wrapper included with the project, or use a system-wide Maven installation if you already have one.
+
+## 2. Open the Project
+
+1. Extract the ZIP file.
+2. Open **VSCode**.
+3. Go to **File → Open Folder**.
+4. Select the `coffee-shop-management` folder.
+5. VSCode should automatically detect it as a Java project.
+6. The required dependencies will start downloading automatically. The first time may take a few minutes.
+
+## 3. Run the Project
+
+There are three easy ways to run the project.
+
+### Option A: Run from VSCode UI
+
+1. Open:
+   `CoffeeShopManagementApplication.java`
+2. Find the `main` method.
+3. Click the **Run** button above the `main` method.
+
+### Option B: Run from Terminal
+
+If Maven is available, run:
+
 ```bash
 mvn spring-boot:run
 ```
 
-**Option C: Build করে Jar রান করুন**
+### Option C: Build and Run the JAR
+
+First build the project:
+
 ```bash
 mvn clean package
+```
+
+Then run the generated JAR:
+
+```bash
 java -jar target/coffee-shop-management.jar
 ```
 
-### 4. অ্যাপ চেক করুন
-প্রজেক্ট রান হলে ব্রাউজারে যান:
-- **Dashboard:** http://localhost:8080/
-- **H2 Console:** http://localhost:8080/h2-console
-  - JDBC URL: `jdbc:h2:mem:coffeeshopdb`
-  - Username: `sa`
-  - Password: *(খালি রাখুন)*
+## 4. Check the Application
 
-## API Endpoints
+After the application starts successfully, open your browser.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/products` | সব product দেখুন |
-| GET | `/api/products/{id}` | নির্দিষ্ট product দেখুন |
-| GET | `/api/products/search?name=xxx` | নাম দিয়ে খুঁজুন |
-| POST | `/api/products` | নতুন product যোগ করুন |
-| PUT | `/api/products/{id}` | product আপডেট করুন |
-| DELETE | `/api/products/{id}` | product ডিলিট করুন |
-| GET | `/api/categories` | সব category দেখুন |
-| POST | `/api/categories` | নতুন category যোগ করুন |
-| GET | `/api/customers` | সব customer দেখুন |
-| POST | `/api/customers` | নতুন customer যোগ করুন |
-| GET | `/api/orders` | সব order দেখুন |
-| POST | `/api/orders` | নতুন order তৈরি করুন |
-| PUT | `/api/orders/{id}/status?status=COMPLETED` | order এর status আপডেট করুন |
+### Dashboard
 
-### Sample: নতুন Order তৈরি করার Request Body
+```text
+http://localhost:8080/
+```
+
+### H2 Database Console
+
+```text
+http://localhost:8080/h2-console
+```
+
+Use the following login information:
+
+* **JDBC URL:** `jdbc:h2:mem:coffeeshopdb`
+* **Username:** `sa`
+* **Password:** Leave it empty
+
+# API Endpoints
+
+| Method | Endpoint                                   | Description             |
+| ------ | ------------------------------------------ | ----------------------- |
+| GET    | `/api/products`                            | Get all products        |
+| GET    | `/api/products/{id}`                       | Get a specific product  |
+| GET    | `/api/products/search?name=xxx`            | Search products by name |
+| POST   | `/api/products`                            | Add a new product       |
+| PUT    | `/api/products/{id}`                       | Update a product        |
+| DELETE | `/api/products/{id}`                       | Delete a product        |
+| GET    | `/api/categories`                          | Get all categories      |
+| POST   | `/api/categories`                          | Add a new category      |
+| GET    | `/api/customers`                           | Get all customers       |
+| POST   | `/api/customers`                           | Add a new customer      |
+| GET    | `/api/orders`                              | Get all orders          |
+| POST   | `/api/orders`                              | Create a new order      |
+| PUT    | `/api/orders/{id}/status?status=COMPLETED` | Update order status     |
+
+# Sample: Create a New Order
+
+Use the following JSON request body:
+
 ```json
 {
   "customer": { "id": 1 },
@@ -88,26 +141,34 @@ java -jar target/coffee-shop-management.jar
   ]
 }
 ```
-(প্রথমে `/api/customers` দিয়ে একটা customer বানিয়ে নিন, তারপর এই order request পাঠান।)
 
-## Project Structure
-```
+> First, create a customer using `/api/customers`. Then use that customer's ID to create the order.
+
+# Project Structure
+
+```text
 coffee-shop-management/
 ├── pom.xml
 ├── src/main/java/com/coffeeshop/management/
 │   ├── CoffeeShopManagementApplication.java
-│   ├── model/         (Product, Category, Customer, Order, OrderItem)
-│   ├── repository/    (JPA repositories)
-│   ├── service/        (OrderService - business logic)
-│   └── controller/     (REST controllers)
+│   ├── model/
+│   │   ├── Product.java
+│   │   ├── Category.java
+│   │   ├── Customer.java
+│   │   ├── Order.java
+│   │   └── OrderItem.java
+│   ├── repository/
+│   │   └── JPA repositories
+│   ├── service/
+│   │   └── OrderService.java
+│   └── controller/
+│       └── REST controllers
 └── src/main/resources/
     ├── application.properties
-    └── static/index.html   (simple dashboard)
+    └── static/
+        └── index.html
 ```
 
-## Extend করার আইডিয়া
-- JWT Authentication যোগ করা
-- MySQL/PostgreSQL এ migrate করা (শুধু `application.properties` পরিবর্তন করলেই হবে)
-- Bill/Receipt generation (PDF)
-- Admin login panel
-- Daily sales report
+### Project Purpose
+
+The main purpose of this project is to provide a simple **Coffee Shop Management System** where the shop can manage its menu products, categories, customers, and orders using **Spring Boot, Spring Data JPA, and an H2 database**.
