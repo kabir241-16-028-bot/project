@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Coffee Shop Management</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f5ede4; margin: 0; color: #3b2417; }
+  header { background: #4b2e1e; color: #fff; padding: 20px 30px; }
+  header h1 { margin: 0; font-size: 26px; }
+  header p { margin: 4px 0 0; opacity: 0.8; font-size: 14px; }
+  main { padding: 24px 30px; max-width: 1000px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 10px; padding: 18px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  .card h2 { margin-top: 0; font-size: 18px; border-bottom: 2px solid #e8d9c8; padding-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 14px; }
+  th { color: #7a5c46; }
+  .badge { background: #e8d9c8; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+  .stock-low { color: #c0392b; font-weight: bold; }
+  .endpoints code { background: #f0e6da; padding: 2px 6px; border-radius: 4px; }
+  .endpoints li { margin-bottom: 6px; font-size: 14px; }
+
+  .add-btn { background: #7a5c46; color: #fff; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .add-btn:hover { background: #4b2e1e; }
+  .qty-input { width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; }
+  .cart-row td { vertical-align: middle; }
+  .remove-btn { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 16px; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .form-row input, .form-row select { padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+  .form-row input[type=text] { flex: 1; min-width: 160px; }
+  .cart-total { text-align: right; font-size: 18px; font-weight: bold; margin: 10px 0; }
+  .pay-btn { background: #2e7d32; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; width: 100%; }
+  .pay-btn:hover { background: #1b5e20; }
+  .pay-btn:disabled { background: #aaa; cursor: not-allowed; }
+  .empty-cart { color: #999; font-style: italic; padding: 10px 0; }
+  .receipt { display: none; background: #eafbea; border: 1px solid #2e7d32; border-radius: 8px; padding: 14px; margin-top: 14px; font-size: 14px; }
+  .receipt.show { display: block; }
+  .receipt h3 { margin: 0 0 8px; color: #1b5e20; }
+  .error-msg { display: none; color: #c0392b; margin-top: 10px; font-size: 14px; }
+  .error-msg.show { display: block; }
+
+  .hidden { display: none !important; }
+
+  .header-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .header-user { display: flex; align-items: center; gap: 12px; }
+  .header-user span { font-size: 14px; }
+  .logout-btn { background: #fff; color: #4b2e1e; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+  .logout-btn:hover { background: #e8d9c8; }
+
+  .auth-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #4b2e1e, #7a5c46); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .auth-card { background: #fff; border-radius: 12px; padding: 32px; width: 100%; max-width: 340px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); box-sizing: border-box; }
+  .auth-card h2 { margin-top: 0; text-align: center; color: #4b2e1e; }
+  .auth-card input { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+  .auth-card .pay-btn { margin-top: 4px; }
+  .auth-switch { text-align: center; font-size: 13px; margin-top: 14px; color: #7a5c46; }
+  .auth-switch a { color: #4b2e1e; cursor: pointer; text-decoration: underline; }
+  .auth-error { color: #c0392b; font-size: 13px; margin-bottom: 10px; display: none; }
+  .auth-error.show { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-bar">
+    <div>
+      <h1>☕ Coffee Shop Management System</h1>
+      <p>Spring Boot + JPA + H2 — sample data loads automatically on startup</p>
+    </div>
+    <div class="header-user">
+      <span id="welcomeMsg"></span>
+      <button class="logout-btn" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+</header>
+
+<!-- Login / Sign up overlay, shown until the session is authenticated -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div id="loginForm">
+      <h2>☕ Log In</h2>
+      <div class="auth-error" id="authError"></div>
+      <input type="text" id="loginUsername" placeholder="Username" autocomplete="username">
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+      <button class="pay-btn" onclick="login()">Log In</button>
+      <div class="auth-switch">Don't have an account? <a onclick="showSignupForm()">Sign up</a></div>
+    </div>
+
+    <div id="signupForm" class="hidden">
+      <h2>☕ Sign Up</h2>
+      <div class="auth-error" id="authErrorSignup"></div>
+      <input type="text" id="signupUsername" placeholder="Username" autocomplete="username">
+      <input type="password" id="signupPassword" placeholder="Password (min 4 characters)" autocomplete="new-password">
+      <input type="text" id="signupFullName" placeholder="Full name (optional)">
+      <input type="email" id="signupEmail" placeholder="Email (optional)">
+      <button class="pay-btn" onclick="signup()">Sign Up</button>
+      <div class="auth-switch">Already have an account? <a onclick="showLoginForm()">Log in</a></div>
+    </div>
+  </div>
+</div>
+
+<main id="appMain" class="hidden">
+  <div class="card">
+    <h2>Products / Menu</h2>
+    <table id="productTable">
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Category</th><th>Price (৳)</th><th>Stock</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>🛒 New Order &amp; Payment</h2>
+
+    <table id="cartTable">
+      <thead>
+        <tr><th>Product</th><th>Price</th><th>Qty</th><th>Subtotal</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="emptyCartMsg" class="empty-cart">Cart is empty — click "Add" on a product above.</div>
+
+    <div class="cart-total">Total: ৳<span id="cartTotal">0.00</span></div>
+
+    <div class="form-row">
+      <input type="text" id="customerName" placeholder="Customer name (optional)">
+      <input type="text" id="customerPhone" placeholder="Phone (optional)">
+      <select id="paymentMethod">
+        <option value="CASH">Cash</option>
+        <option value="CARD">Card</option>
+        <option value="MOBILE_BANKING">Mobile Banking</option>
+      </select>
+    </div>
+
+    <button class="pay-btn" id="orderPayBtn" onclick="placeOrderAndPay()">Order &amp; Payment</button>
+    <div class="error-msg" id="orderError"></div>
+    <div class="receipt" id="receiptBox"></div>
+  </div>
+
+  <div class="card">
+    <h2>Categories</h2>
+    <table id="categoryTable">
+      <thead><tr><th>ID</th><th>Name</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>👤 Employees</h2>
+    <div class="form-row">
+      <input type="text" id="empName" placeholder="Name">
+      <input type="text" id="empPosition" placeholder="Position">
+      <input type="text" id="empSalary" placeholder="Salary">
+      <input type="text" id="empEmail" placeholder="Email (optional)">
+      <input type="text" id="empPhone" placeholder="Phone (optional)">
+      <button class="add-btn" onclick="addEmployee()">Add Employee</button>
+    </div>
+    <table id="employeeTable">
+      <thead><tr><th>ID</th><th>Name</th><th>Position</th><th>Salary (৳)</th><th>Email</th><th>Phone</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>🚚 Suppliers</h2>
+    <div class="form-row">
+      <input type="text" id="supName" placeholder="Name">
+      <input type="text" id="supContact" placeholder="Contact person (optional)">
+      <input type="text" id="supPhone" placeholder="Phone (optional)">
+      <input type="text" id="supEmail" placeholder="Email (optional)">
+      <button class="add-btn" onclick="addSupplier()">Add Supplier</button>
+    </div>
+    <table id="supplierTable">
+      <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>Phone</th><th>Email</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>📦 Inventory</h2>
+    <div class="form-row">
+      <input type="text" id="invItemName" placeholder="Item name">
+      <input type="text" id="invQuantity" placeholder="Quantity">
+      <input type="text" id="invUnit" placeholder="Unit (kg, L, pcs...)">
+      <input type="text" id="invReorderLevel" placeholder="Reorder level (optional)">
+      <select id="invSupplier"><option value="">No supplier</option></select>
+      <button class="add-btn" onclick="addInventory()">Add Item</button>
+    </div>
+    <table id="inventoryTable">
+      <thead><tr><th>ID</th><th>Item</th><th>Qty</th><th>Unit</th><th>Reorder Level</th><th>Supplier</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>🏷️ Discounts</h2>
+    <div class="form-row">
+      <input type="text" id="disCode" placeholder="Code (e.g. SAVE10)">
+      <input type="text" id="disPercentage" placeholder="Percentage">
+      <input type="date" id="disValidUntil">
+      <select id="disProduct"><option value="">No product</option></select>
+      <button class="add-btn" onclick="addDiscount()">Add Discount</button>
+    </div>
+    <table id="discountTable">
+      <thead><tr><th>ID</th><th>Code</th><th>%</th><th>Valid Until</th><th>Product</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>⭐ Reviews</h2>
+    <div class="form-row">
+      <select id="revCustomer"><option value="">No customer</option></select>
+      <select id="revProduct"><option value="">No product</option></select>
+      <input type="text" id="revRating" placeholder="Rating (1-5)">
+      <input type="text" id="revComment" placeholder="Comment (optional)">
+      <button class="add-btn" onclick="addReview()">Add Review</button>
+    </div>
+    <table id="reviewTable">
+      <thead><tr><th>ID</th><th>Customer</th><th>Product</th><th>Rating</th><th>Comment</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card endpoints">
+    <h2>Available API Endpoints</h2>
+    <ul>
+      <li><code>POST /api/auth/signup</code> — create an account (username, password, fullName, email)</li>
+      <li><code>POST /api/auth/login</code> — log in and start a session (username, password)</li>
+      <li><code>POST /api/auth/logout</code> — log out and end the session</li>
+      <li><code>GET /api/auth/me</code> — check the current logged-in user</li>
+      <li><code>GET /api/products</code> — list all products</li>
+      <li><code>POST /api/products</code> — create a product</li>
+      <li><code>GET /api/categories</code> — list categories</li>
+      <li><code>GET /api/customers</code> — list customers</li>
+      <li><code>POST /api/orders</code> — create an order (auto-calculates total & updates stock)</li>
+      <li><code>GET /api/orders</code> — list all orders</li>
+      <li><code>PUT /api/orders/{id}/pay?method=CASH|CARD|MOBILE_BANKING</code> — mark an order as paid & completed</li>
+      <li><code>GET/POST/PUT/DELETE /api/employees</code> — manage employees</li>
+      <li><code>GET/POST/PUT/DELETE /api/suppliers</code> — manage suppliers</li>
+      <li><code>GET/POST/PUT/DELETE /api/inventory</code> — manage inventory items</li>
+      <li><code>GET/POST/PUT/DELETE /api/discounts</code> — manage discounts</li>
+      <li><code>GET/POST/PUT/DELETE /api/reviews</code> — manage reviews</li>
+      <li><code>GET /h2-console</code> — H2 database console (JDBC URL: <code>jdbc:h2:mem:coffeeshopdb</code>, user: <code>sa</code>)</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+  // ---------- Auth ----------
+  let currentUser = null;
+
+  function showAuthError(msg, id = 'authError') {
+    const box = document.getElementById(id);
+    box.textContent = msg;
+    box.classList.add('show');
+  }
+  function clearAuthErrors() {
+    document.getElementById('authError').classList.remove('show');
+    document.getElementById('authErrorSignup').classList.remove('show');
+  }
+
+  function showSignupForm() {
+    clearAuthErrors();
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('signupForm').classList.remove('hidden');
+  }
+  function showLoginForm() {
+    clearAuthErrors();
+    document.getElementById('signupForm').classList.add('hidden');
+    document.getElementById('loginForm').classList.remove('hidden');
+  }
+
+  async function login() {
+    clearAuthErrors();
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!username || !password) { showAuthError('Username and password are required'); return; }
+
+    const res = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError(data.error || 'Login failed'); return; }
+
+    currentUser = data;
+    document.getElementById('loginPassword').value = '';
+    enterApp();
+  }
+
+  async function signup() {
+    clearAuthErrors();
+    const username = document.getElementById('signupUsername').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const fullName = document.getElementById('signupFullName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    if (!username || !password) { showAuthError('Username and password are required', 'authErrorSignup'); return; }
+
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, fullName, email })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError(data.error || 'Sign up failed', 'authErrorSignup'); return; }
+
+    // auto log in right after a successful signup
+    const loginRes = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const loginData = await loginRes.json();
+    if (!loginRes.ok) {
+      showLoginForm();
+      showAuthError('Account created — please log in.');
+      return;
+    }
+    currentUser = loginData;
+    document.getElementById('signupPassword').value = '';
+    enterApp();
+  }
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    currentUser = null;
+    document.getElementById('appMain').classList.add('hidden');
+    document.getElementById('authOverlay').classList.remove('hidden');
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    showLoginForm();
+  }
+
+  function enterApp() {
+    document.getElementById('authOverlay').classList.add('hidden');
+    document.getElementById('appMain').classList.remove('hidden');
+    document.getElementById('welcomeMsg').textContent = 'Hi, ' + (currentUser.fullName || currentUser.username) + '!';
+    init();
+  }
+
+  async function checkSession() {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      currentUser = await res.json();
+      enterApp();
+    } else {
+      document.getElementById('authOverlay').classList.remove('hidden');
+      document.getElementById('appMain').classList.add('hidden');
+    }
+  }
+
+  let products = [];
+  const cart = {}; // productId -> { product, qty }
+
+  async function loadProducts() {
+    const res = await fetch('/api/products');
+    products = await res.json();
+    const tbody = document.querySelector('#productTable tbody');
+    tbody.innerHTML = products.map(p => `
+      <tr>
+        <td>${p.id}</td>
+        <td>${p.name}</td>
+        <td><span class="badge">${p.category ? p.category.name : '-'}</span></td>
+        <td>${Number(p.price).toFixed(2)}</td>
+        <td class="${p.stockQuantity < 10 ? 'stock-low' : ''}">${p.stockQuantity}</td>
+        <td>
+          <button class="add-btn" ${p.stockQuantity <= 0 ? 'disabled' : ''} onclick="addToCart(${p.id})">
+            ${p.stockQuantity <= 0 ? 'Out of stock' : 'Add'}
+          </button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function loadCategories() {
+    const res = await fetch('/api/categories');
+    const categories = await res.json();
+    const tbody = document.querySelector('#categoryTable tbody');
+    tbody.innerHTML = categories.map(c => `<tr><td>${c.id}</td><td>${c.name}</td></tr>`).join('');
+  }
+
+  function addToCart(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    if (cart[productId]) {
+      if (cart[productId].qty < product.stockQuantity) cart[productId].qty++;
+    } else {
+      cart[productId] = { product, qty: 1 };
+    }
+    renderCart();
+  }
+
+  function changeQty(productId, delta) {
+    const entry = cart[productId];
+    if (!entry) return;
+    const newQty = entry.qty + delta;
+    if (newQty <= 0) {
+      delete cart[productId];
+    } else if (newQty <= entry.product.stockQuantity) {
+      entry.qty = newQty;
+    }
+    renderCart();
+  }
+
+  function removeFromCart(productId) {
+    delete cart[productId];
+    renderCart();
+  }
+
+  function renderCart() {
+    const tbody = document.querySelector('#cartTable tbody');
+    const items = Object.values(cart);
+    document.getElementById('emptyCartMsg').style.display = items.length ? 'none' : 'block';
+
+    let total = 0;
+    tbody.innerHTML = items.map(({ product, qty }) => {
+      const subtotal = product.price * qty;
+      total += subtotal;
+      return `
+        <tr class="cart-row">
+          <td>${product.name}</td>
+          <td>৳${Number(product.price).toFixed(2)}</td>
+          <td>
+            <button class="add-btn" onclick="changeQty(${product.id}, -1)">-</button>
+            <span class="qty-input" style="display:inline-block;text-align:center;">${qty}</span>
+            <button class="add-btn" onclick="changeQty(${product.id}, 1)">+</button>
+          </td>
+          <td>৳${subtotal.toFixed(2)}</td>
+          <td><button class="remove-btn" onclick="removeFromCart(${product.id})" title="Remove">✕</button></td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('cartTotal').textContent = total.toFixed(2);
+    document.getElementById('orderPayBtn').disabled = items.length === 0;
+  }
+
+  async function placeOrderAndPay() {
+    const items = Object.values(cart);
+    const errorBox = document.getElementById('orderError');
+    const receiptBox = document.getElementById('receiptBox');
+    errorBox.classList.remove('show');
+    receiptBox.classList.remove('show');
+
+    if (!items.length) return;
+
+    const btn = document.getElementById('orderPayBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    try {
+      const name = document.getElementById('customerName').value.trim();
+      const phone = document.getElementById('customerPhone').value.trim();
+      const paymentMethod = document.getElementById('paymentMethod').value;
+
+      // 1) optionally create a customer if a name was entered
+      let customer = null;
+      if (name) {
+        const custRes = await fetch('/api/customers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone })
+        });
+        if (custRes.ok) customer = await custRes.json();
+      }
+
+      // 2) create the order
+      const orderPayload = {
+        customer: customer,
+        items: items.map(({ product, qty }) => ({
+          product: { id: product.id },
+          quantity: qty
+        }))
+      };
+
+      const orderRes = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      });
+
+      if (!orderRes.ok) {
+        const msg = await orderRes.text();
+        throw new Error(msg || 'Failed to create order');
+      }
+      const order = await orderRes.json();
+
+      // 3) pay for the order
+      const payRes = await fetch(`/api/orders/${order.id}/pay?method=${paymentMethod}`, {
+        method: 'PUT'
+      });
+
+      if (!payRes.ok) {
+        const msg = await payRes.text();
+        throw new Error(msg || 'Payment failed');
+      }
+      const paidOrder = await payRes.json();
+
+      showReceipt(paidOrder);
+
+      // reset cart & refresh product stock
+      Object.keys(cart).forEach(k => delete cart[k]);
+      renderCart();
+      document.getElementById('customerName').value = '';
+      document.getElementById('customerPhone').value = '';
+      await loadProducts();
+    } catch (err) {
+      errorBox.textContent = '⚠ ' + err.message;
+      errorBox.classList.add('show');
+    } finally {
+      btn.textContent = 'Order & Payment';
+      btn.disabled = Object.keys(cart).length === 0;
+    }
+  }
+
+  function showReceipt(order) {
+    const box = document.getElementById('receiptBox');
+    const itemLines = order.items.map(i =>
+      `<div>${i.product.name} × ${i.quantity} = ৳${Number(i.subtotal).toFixed(2)}</div>`
+    ).join('');
+    box.innerHTML = `
+      <h3>✅ Payment Successful — Order #${order.id}</h3>
+      <div>${itemLines}</div>
+      <div style="margin-top:8px;"><strong>Total Paid: ৳${Number(order.totalAmount).toFixed(2)}</strong></div>
+      <div>Payment Method: ${order.paymentMethod}</div>
+      <div>Status: ${order.status}</div>
+    `;
+    box.classList.add('show');
+  }
+
+  // ---------- Employees ----------
+  async function loadEmployees() {
+    const res = await fetch('/api/employees');
+    const employees = await res.json();
+    const tbody = document.querySelector('#employeeTable tbody');
+    tbody.innerHTML = employees.map(e => `
+      <tr>
+        <td>${e.id}</td><td>${e.name}</td><td>${e.position || '-'}</td>
+        <td>${e.salary != null ? Number(e.salary).toFixed(2) : '-'}</td>
+        <td>${e.email || '-'}</td><td>${e.phone || '-'}</td>
+        <td><button class="remove-btn" onclick="deleteEmployee(${e.id})" title="Delete">✕</button></td>
+      </tr>`).join('');
+  }
+
+  async function addEmployee() {
+    const name = document.getElementById('empName').value.trim();
+    const position = document.getElementById('empPosition').value.trim();
+    const salary = document.getElementById('empSalary').value.trim();
+    const email = document.getElementById('empEmail').value.trim();
+    const phone = document.getElementById('empPhone').value.trim();
+    if (!name || !position || !salary) { alert('Name, position and salary are required'); return; }
+    const res = await fetch('/api/employees', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, position, salary: Number(salary), email, phone })
+    });
+    if (!res.ok) { alert(await res.text() || 'Failed to add employee'); return; }
+    document.getElementById('empName').value = '';
+    document.getElementById('empPosition').value = '';
+    document.getElementById('empSalary').value = '';
+    document.getElementById('empEmail').value = '';
+    document.getElementById('empPhone').value = '';
+    await loadEmployees();
+  }
+
+  async function deleteEmployee(id) {
+    await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+    await loadEmployees();
+  }
+
+  // ---------- Suppliers ----------
+  let suppliers = [];
+  async function loadSuppliers() {
+    const res = await fetch('/api/suppliers');
+    suppliers = await res.json();
+    const tbody = document.querySelector('#supplierTable tbody');
+    tbody.innerHTML = suppliers.map(s => `
+      <tr>
+        <td>${s.id}</td><td>${s.name}</td><td>${s.contactPerson || '-'}</td>
+        <td>${s.phone || '-'}</td><td>${s.email || '-'}</td>
+        <td><button class="remove-btn" onclick="deleteSupplier(${s.id})" title="Delete">✕</button></td>
+      </tr>`).join('');
+    const sel = document.getElementById('invSupplier');
+    sel.innerHTML = '<option value="">No supplier</option>' +
+      suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  }
+
+  async function addSupplier() {
+    const name = document.getElementById('supName').value.trim();
+    const contactPerson = document.getElementById('supContact').value.trim();
+    const phone = document.getElementById('supPhone').value.trim();
+    const email = document.getElementById('supEmail').value.trim();
+    if (!name) { alert('Supplier name is required'); return; }
+    const res = await fetch('/api/suppliers', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, contactPerson, phone, email })
+    });
+    if (!res.ok) { alert(await res.text() || 'Failed to add supplier'); return; }
+    document.getElementById('supName').value = '';
+    document.getElementById('supContact').value = '';
+    document.getElementById('supPhone').value = '';
+    document.getElementById('supEmail').value = '';
+    await loadSuppliers();
+  }
+
+  async function deleteSupplier(id) {
+    await fetch(`/api/suppliers/${id}`, { method: 'DELETE' });
+    await loadSuppliers();
+    await loadInventory();
+  }
+
+  // ---------- Inventory ----------
+  async function loadInventory() {
+    const res = await fetch('/api/inventory');
+    const items = await res.json();
+    const tbody = document.querySelector('#inventoryTable tbody');
+    tbody.innerHTML = items.map(i => `
+      <tr>
+        <td>${i.id}</td><td>${i.itemName}</td><td>${i.quantity}</td>
+        <td>${i.unit || '-'}</td><td>${i.reorderLevel != null ? i.reorderLevel : '-'}</td>
+        <td>${i.supplier ? i.supplier.name : '-'}</td>
+        <td><button class="remove-btn" onclick="deleteInventory(${i.id})" title="Delete">✕</button></td>
+      </tr>`).join('');
+  }
+
+  async function addInventory() {
+    const itemName = document.getElementById('invItemName').value.trim();
+    const quantity = document.getElementById('invQuantity').value.trim();
+    const unit = document.getElementById('invUnit').value.trim();
+    const reorderLevel = document.getElementById('invReorderLevel').value.trim();
+    const supplierId = document.getElementById('invSupplier').value;
+    if (!itemName || !quantity) { alert('Item name and quantity are required'); return; }
+    const payload = {
+      itemName, quantity: Number(quantity), unit,
+      reorderLevel: reorderLevel ? Number(reorderLevel) : null,
+      supplier: supplierId ? { id: Number(supplierId) } : null
+    };
+    const res = await fetch('/api/inventory', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { alert(await res.text() || 'Failed to add item'); return; }
+    document.getElementById('invItemName').value = '';
+    document.getElementById('invQuantity').value = '';
+    document.getElementById('invUnit').value = '';
+    document.getElementById('invReorderLevel').value = '';
+    document.getElementById('invSupplier').value = '';
+    await loadInventory();
+  }
+
+  async function deleteInventory(id) {
+    await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
+    await loadInventory();
+  }
+
+  // ---------- Discounts ----------
+  async function loadDiscounts() {
+    const res = await fetch('/api/discounts');
+    const discounts = await res.json();
+    const tbody = document.querySelector('#discountTable tbody');
+    tbody.innerHTML = discounts.map(d => `
+      <tr>
+        <td>${d.id}</td><td>${d.code}</td><td>${Number(d.percentage).toFixed(2)}</td>
+        <td>${d.validUntil || '-'}</td><td>${d.product ? d.product.name : '-'}</td>
+        <td><button class="remove-btn" onclick="deleteDiscount(${d.id})" title="Delete">✕</button></td>
+      </tr>`).join('');
+    const sel = document.getElementById('disProduct');
+    sel.innerHTML = '<option value="">No product</option>' +
+      products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  }
+
+  async function addDiscount() {
+    const code = document.getElementById('disCode').value.trim();
+    const percentage = document.getElementById('disPercentage').value.trim();
+    const validUntil = document.getElementById('disValidUntil').value;
+    const productId = document.getElementById('disProduct').value;
+    if (!code || !percentage) { alert('Code and percentage are required'); return; }
+    const payload = {
+      code, percentage: Number(percentage),
+      validUntil: validUntil || null,
+      product: productId ? { id: Number(productId) } : null
+    };
+    const res = await fetch('/api/discounts', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { alert(await res.text() || 'Failed to add discount'); return; }
+    document.getElementById('disCode').value = '';
+    document.getElementById('disPercentage').value = '';
+    document.getElementById('disValidUntil').value = '';
+    document.getElementById('disProduct').value = '';
+    await loadDiscounts();
+  }
+
+  async function deleteDiscount(id) {
+    await fetch(`/api/discounts/${id}`, { method: 'DELETE' });
+    await loadDiscounts();
+  }
+
+  // ---------- Reviews ----------
+  let customers = [];
+  async function loadReviews() {
+    const custRes = await fetch('/api/customers');
+    customers = await custRes.json();
+    const custSel = document.getElementById('revCustomer');
+    custSel.innerHTML = '<option value="">No customer</option>' +
+      customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+    const prodSel = document.getElementById('revProduct');
+    prodSel.innerHTML = '<option value="">No product</option>' +
+      products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+    const res = await fetch('/api/reviews');
+    const reviews = await res.json();
+    const tbody = document.querySelector('#reviewTable tbody');
+    tbody.innerHTML = reviews.map(r => `
+      <tr>
+        <td>${r.id}</td><td>${r.customer ? r.customer.name : '-'}</td>
+        <td>${r.product ? r.product.name : '-'}</td><td>${r.rating}</td>
+        <td>${r.comment || '-'}</td>
+        <td><button class="remove-btn" onclick="deleteReview(${r.id})" title="Delete">✕</button></td>
+      </tr>`).join('');
+  }
+
+  async function addReview() {
+    const customerId = document.getElementById('revCustomer').value;
+    const productId = document.getElementById('revProduct').value;
+    const rating = document.getElementById('revRating').value.trim();
+    const comment = document.getElementById('revComment').value.trim();
+    if (!rating) { alert('Rating is required'); return; }
+    const payload = {
+      rating: Number(rating), comment,
+      reviewDate: new Date().toISOString().slice(0, 10),
+      customer: customerId ? { id: Number(customerId) } : null,
+      product: productId ? { id: Number(productId) } : null
+    };
+    const res = await fetch('/api/reviews', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) { alert(await res.text() || 'Failed to add review'); return; }
+    document.getElementById('revRating').value = '';
+    document.getElementById('revComment').value = '';
+    await loadReviews();
+  }
+
+  async function deleteReview(id) {
+    await fetch(`/api/reviews/${id}`, { method: 'DELETE' });
+    await loadReviews();
+  }
+
+  async function init() {
+    await loadProducts();
+    await loadCategories();
+    await loadSuppliers();
+    await loadInventory();
+    await loadDiscounts();
+    await loadReviews();
+    await loadEmployees();
+    renderCart();
+  }
+
+  checkSession();
+</script>
+
+</body>
+</html>
